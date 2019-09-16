@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.28803.156
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Orleans.EventStore", "Orleans.EventStore\Orleans.EventStore.csproj", "{B451F53C-9994-4C30-92E7-7D321F3B5C2D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Orleans.EventStore.Tests", "Orleans.EventStore.Tests\Orleans.EventStore.Tests.csproj", "{2173FDF7-D9E1-4CE3-A4A6-D9F76CC5D117}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B451F53C-9994-4C30-92E7-7D321F3B5C2D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B451F53C-9994-4C30-92E7-7D321F3B5C2D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B451F53C-9994-4C30-92E7-7D321F3B5C2D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B451F53C-9994-4C30-92E7-7D321F3B5C2D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2173FDF7-D9E1-4CE3-A4A6-D9F76CC5D117}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2173FDF7-D9E1-4CE3-A4A6-D9F76CC5D117}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2173FDF7-D9E1-4CE3-A4A6-D9F76CC5D117}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2173FDF7-D9E1-4CE3-A4A6-D9F76CC5D117}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A23B3D1B-3CE3-492B-BDDF-963D48F8FF75}
+	EndGlobalSection
+EndGlobal
