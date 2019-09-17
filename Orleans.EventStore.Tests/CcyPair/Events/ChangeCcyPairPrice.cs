@@ -11,7 +11,7 @@ namespace Orleans.EventStore.Tests
         {
         }
 
-        public ChangeCcyPairPrice(string ccyPair, string market, double ask, double bid) : base(ccyPair)
+        public ChangeCcyPairPrice(string ccyPair, string market, double bid, double ask) : base(ccyPair)
         {
             Ask = ask;
             Bid = bid;
@@ -21,5 +21,10 @@ namespace Orleans.EventStore.Tests
         public double Ask { get;  set; }
         public double Bid { get;  set; }
         public string Market { get;  set; }
+
+        public override string ToString()
+        {
+            return $"{StreamId} bid:{Bid} ask:{Ask} - {Market}";
+        }
     }
 }

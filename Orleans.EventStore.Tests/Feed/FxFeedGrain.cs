@@ -3,6 +3,7 @@ using Orleans.Providers;
 using Orleans.Streams;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -34,18 +35,19 @@ namespace Orleans.EventStore.Tests
             return Task.FromResult(_consumedEvents.AsEnumerable());
         }
 
-        public override Task OnNextAsync(CcyPairChanged @event, StreamSequenceToken token)
+        public async override Task OnNextAsync(CcyPairChanged @event, StreamSequenceToken token)
         {
             _consumedEvents.Add(@event);
 
             if (!_ccyPairs.ContainsKey(@event.StreamId))
             {
                 _ccyPairs[@event.StreamId] = GrainFactory.GetGrain<ICcyPairGrain>(@event.StreamId);
+
+                Debug.WriteLine($"Create feed {@event.StreamId}");
             }
 
-            _ccyPairs[@event.StreamId].Tick(@event.Group, @event.Ask, @event.Bid);
+            await _ccyPairs[@event.StreamId].Tick(@event.Market, @event.Bid, @event.Ask);
 
-            return Task.CompletedTask;
         }
 
     }

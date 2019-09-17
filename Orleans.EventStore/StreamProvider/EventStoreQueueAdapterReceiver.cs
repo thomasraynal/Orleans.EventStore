@@ -66,11 +66,13 @@ namespace Orleans.EventStore
                 await _eventStoreRepository.Connect(timeout);
             }
 
-            var group = _queueId.ToString();
+            //var group = _queueId.ToString();
 
-            await _eventStoreRepository.CreatePersistentSubscription(_providerName, group);
+            //await _eventStoreRepository.CreatePersistentSubscription(_providerName, group);
 
-            _cleanUp = _eventStoreRepository.ObservePersistentSubscription(_providerName, group)
+            //todo: catchUp sub
+
+            _cleanUp = _eventStoreRepository.Observe(_providerName)
                 .Subscribe(ev =>
                 {
                     Debug.WriteLine($"{ev.StreamId} {ev.Version}");

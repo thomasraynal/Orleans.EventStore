@@ -7,9 +7,9 @@ namespace Orleans.EventStore.Tests
 {
     public class MarketGrain : Producer<CcyPairChanged>, IMarketGrain
     {
-        public Task Tick(string ccyPair, double bid, double ask)
+        public async Task Tick(string ccyPair, double bid, double ask)
         {
-            return Next(new CcyPairChanged(this.IdentityString, ccyPair, true, ask, bid));
+            await Next(new CcyPairChanged(this.GetPrimaryKeyString(), ccyPair, true, bid, ask));
         }
     }
 }

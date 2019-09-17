@@ -7,6 +7,7 @@ using Orleans.EventSourcing.CustomStorage;
 using Orleans.Runtime;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,7 +25,6 @@ namespace Orleans.EventStore
         protected EventStoreJournaledGrain(IEventStoreRepositoryConfiguration eventStoreConfiguration)
         {
             _eventStoreConfiguration = eventStoreConfiguration;
-  
         }
 
         public async override Task OnActivateAsync()
@@ -44,20 +44,26 @@ namespace Orleans.EventStore
         {
             try
             {
-                await _repository.SavePendingEvents(IdentityString, Version - 1, updates.Cast<IEvent>());
+                await _repository.SavePendingEvents(this.GetPrimaryKeyString(), Version - 1, updates.Cast<IEvent>());
             }
             //https://dotnet.github.io/orleans/Documentation/grains/event_sourcing/log_consistency_providers.html
-            catch (WrongExpectedVersionException)
+            catch (WrongExpectedVersionException ex)
             {
+                Debug.WriteLine(ex.Message);
                 return false;
             }
 
             return true;
         }
 
+        public async Task<IEnumerable<IEvent>> ReadStreamFromStorage()
+        {
+            return await _repository.GetStream(this.GetPrimaryKeyString());
+        }
+
         public async Task<KeyValuePair<int, TState>> ReadStateFromStorage()
         {
-            var (version, state) = await _repository.GetAggregate<string, TState>(IdentityString);
+            var (version, state) = await _repository.GetAggregate<string, TState>(this.GetPrimaryKeyString());
 
             return KeyValuePair.Create(version, state);
         }

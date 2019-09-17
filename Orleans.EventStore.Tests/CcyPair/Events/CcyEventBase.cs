@@ -10,11 +10,13 @@ namespace Orleans.EventStore.Tests
         {
         }
 
-        protected CcyEventBase(string ccyPair)
+        protected CcyEventBase(string ccyPair, long version = -1L)
         {
             StreamId = ccyPair;
+            Version = version;
         }
 
         public string StreamId { get;  set; }
+        public long Version { get; set; }
     }
 }

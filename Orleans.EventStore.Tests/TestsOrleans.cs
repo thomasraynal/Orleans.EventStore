@@ -104,6 +104,54 @@ namespace Orleans.EventStore.Tests
         }
 
         [Test]
+        public async Task ShouldStreamCcyPairToMultipleSubscribers()
+        {
+            var cancel = new CancellationTokenSource();
+            var silo = await CreateSilo(cancel.Token);
+            var client = await GetClient();
+
+            var fxConnect = client.GetGrain<IMarketGrain>("FxConnect");
+            await fxConnect.Connect("CcyPairStream");
+
+            var feed1 = client.GetGrain<IFxFeedGrain<CcyPairChanged>>(Guid.NewGuid());
+            await feed1.Connect("CcyPairStream");
+            await feed1.Subscribe("EUR/USD");
+
+
+            var feed2 = client.GetGrain<IFxFeedGrain<CcyPairChanged>>(Guid.NewGuid());
+            await feed2.Connect("CcyPairStream");
+            await feed2.Subscribe("EUR/USD");
+
+            await fxConnect.Tick("EUR/USD", 1.32, 1.34);
+            await Task.Delay(200);
+            var consumedEvents1 = await feed1.GetConsumedEvents();
+            var consumedEvents2 = await feed2.GetConsumedEvents();
+            Assert.AreEqual(1, consumedEvents1.Count());
+            Assert.AreEqual(1, consumedEvents2.Count());
+
+            await fxConnect.Tick("EUR/CAD", 1.32, 1.34);
+            await Task.Delay(200);
+            consumedEvents1 = await feed1.GetConsumedEvents();
+            consumedEvents2 = await feed2.GetConsumedEvents();
+            Assert.AreEqual(1, consumedEvents1.Count());
+            Assert.AreEqual(1, consumedEvents2.Count());
+
+            await feed1.Subscribe("EUR/CAD");
+            await feed2.Subscribe("EUR/CAD");
+            await fxConnect.Tick("EUR/CAD", 1.32, 1.34);
+            await Task.Delay(200);
+            consumedEvents1 = await feed1.GetConsumedEvents();
+            consumedEvents2 = await feed2.GetConsumedEvents();
+            Assert.AreEqual(2, consumedEvents1.Count());
+            Assert.AreEqual(2, consumedEvents2.Count());
+
+            cancel.Cancel();
+            await silo.StopAsync();
+            client.Dispose();
+
+        }
+
+        [Test]
         public async Task ShouldDesactivateAndReactivateSubscription()
         {
             var cancel = new CancellationTokenSource();
@@ -196,29 +244,26 @@ namespace Orleans.EventStore.Tests
             await feed1.Subscribe("EUR/USD");
             await feed1.Subscribe("EUR/JPY");
 
-            await fxConnect.Tick("EUR/USD", 1.32, 1.34);
-            await harmony.Tick("EUR/USD", 1.33, 1.34);
-            await fxConnect.Tick("EUR/USD", 1.34, 1.35);
+            await fxConnect.Tick("EUR/USD", 1.31, 1.32);
+            await harmony.Tick("EUR/USD", 1.32, 1.33);
+            await fxConnect.Tick("EUR/USD", 1.33, 1.34);
 
-            await fxConnect.Tick("EUR/JPY", 117.32, 117.34);
+            await fxConnect.Tick("EUR/JPY", 117.31, 117.32);
+            await harmony.Tick("EUR/JPY", 117.32, 117.33);
             await harmony.Tick("EUR/JPY", 117.33, 117.34);
-            await harmony.Tick("EUR/JPY", 117.34, 117.35);
 
-            await Task.Delay(500);
+            //check will Orleans take a few milliseconds to apply all events...
+            await Task.Delay(5000);
 
             var currentEurJpyTick = await eurJpy.GetCurrentTick();
 
-            Assert.AreEqual(117.34, currentEurJpyTick.bid);
-            Assert.AreEqual(117.35, currentEurJpyTick.ask);
+            Assert.AreEqual(117.33, currentEurJpyTick.bid);
+            Assert.AreEqual(117.34, currentEurJpyTick.ask);
 
             var currentEuroDolTick = await euroDol.GetCurrentTick();
 
-            Assert.AreEqual(1.34, currentEuroDolTick.bid);
-            Assert.AreEqual(1.35, currentEuroDolTick.ask);
-
-            //var euroDolEvents = await euroDol.GetAppliedEvents();
-
-            //Assert.AreEqual(3, euroDolEvents.Count());
+            Assert.AreEqual(1.33, currentEuroDolTick.bid);
+            Assert.AreEqual(1.34, currentEuroDolTick.ask);
 
             cancel.Cancel();
             await silo.StopAsync();

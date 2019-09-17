@@ -5,6 +5,7 @@ using Orleans.Providers;
 using Orleans.Runtime;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -21,49 +22,42 @@ namespace Orleans.EventStore.Tests
 
         public async Task Activate()
         {
-            RaiseEvent(new ActivateCcyPair(this.IdentityString));
-
-             await ConfirmEvents();
+            RaiseEvent(new ActivateCcyPair(this.GetPrimaryKeyString()));
+            await ConfirmEvents();
         }
 
         public async Task Desactivate()
         {
-
-            RaiseEvent(new DesactivateCcyPair(this.IdentityString));
-
+            RaiseEvent(new DesactivateCcyPair(this.GetPrimaryKeyString()));
             await ConfirmEvents();
-
         }
 
-        //todo : retrieve events from event store
         public async Task<IEnumerable<IEvent>> GetAppliedEvents()
         {
-            throw new NotImplementedException();
-
-            //await ConfirmEvents();
-
-            //var events = await RetrieveConfirmedEvents(0, Version);
-
-            //return events.Cast<IEvent>();
+            await ConfirmEvents();
+            return await ReadStreamFromStorage();
         }
 
-        public Task<(double bid, double ask)> GetCurrentTick()
+        public async Task<(double bid, double ask)> GetCurrentTick()
         {
-            return Task.FromResult<(double bid, double ask)>((State.Bid, State.Ask));
+            await ConfirmEvents();
+            return (State.Bid, State.Ask);
         }
 
-        public Task<bool> GetIsActive()
+        public async Task<bool> GetIsActive()
         {
-            return Task.FromResult(State.IsActive);
+            await ConfirmEvents();
+            return State.IsActive;
         }
 
-        public async Task Tick(string market, double ask, double bid)
+        public async Task Tick(string market, double bid, double ask)
         {
-   
-            RaiseEvent(new ChangeCcyPairPrice(this.IdentityString, market, ask, bid));
+         
+            Debug.WriteLine($"bid:{bid} ask:{ask}");
+
+            RaiseEvent(new ChangeCcyPairPrice(this.GetPrimaryKeyString(), market, bid, ask));
 
             await ConfirmEvents();
-
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace Orleans.EventStore
 {
-    public interface IEvent : IHasStreamId
+    public interface IEvent : IHasStreamId, IHasVersionId
     {
     }
 }

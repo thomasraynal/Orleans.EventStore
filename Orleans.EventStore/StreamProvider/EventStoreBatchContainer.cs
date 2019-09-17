@@ -12,7 +12,6 @@ namespace Orleans.EventStore
     {
         public Guid StreamGuid { get; }
         public string StreamNamespace { get; }
-
         public IEvent Event { get; }
 
         public EventStoreStreamSequenceToken EventStoreStreamSequenceToken { get; }

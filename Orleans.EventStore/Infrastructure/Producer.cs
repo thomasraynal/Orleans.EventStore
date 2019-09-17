@@ -3,6 +3,7 @@ using Orleans.Providers;
 using Orleans.Streams;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -45,8 +46,10 @@ namespace Orleans.EventStore
                 _streams[@event.StreamId] = producer;
             }
 
-            await _streams[@event.StreamId].OnNextAsync(@event);
+            Debug.WriteLine(@event);
 
+            await _streams[@event.StreamId].OnNextAsync(@event);
+        
         }
 
     }

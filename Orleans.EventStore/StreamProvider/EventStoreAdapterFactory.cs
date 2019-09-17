@@ -20,7 +20,7 @@ namespace Orleans.EventStore
         private readonly ILoggerFactory _loggerFactory;
         private readonly IStreamQueueMapper _streamQueueMapper;
         private readonly string _providerName;
-        private readonly EventStoreQueueAdapterCache _eventStoreQueueAdapterCache;
+        private readonly SimpleQueueAdapterCache _eventStoreQueueAdapterCache;
         private readonly ConcurrentDictionary<QueueId, EventStoreQueueAdapterReceiver> _receivers;
 
         public static EventStoreAdapterFactory Create(IServiceProvider services, string name)
@@ -35,19 +35,24 @@ namespace Orleans.EventStore
             _streamProviderConfiguration = streamProviderConfiguration;
             _loggerFactory = loggerFactory;
             _providerName = providerName;
-
+            
             _receivers = new ConcurrentDictionary<QueueId, EventStoreQueueAdapterReceiver>();
 
-            _eventStoreQueueAdapterCache = new EventStoreQueueAdapterCache(this, loggerFactory);
+            var options = new SimpleQueueCacheOptions()
+            {
+                CacheSize = 100
+            };
 
-            var hashRingStreamQueueMapperOptions = new HashRingStreamQueueMapperOptions() { TotalQueueCount = 2 };
+            _eventStoreQueueAdapterCache = new SimpleQueueAdapterCache(options,_providerName, _loggerFactory);//EventStoreQueueAdapterCache(this, loggerFactory);
+
+            var hashRingStreamQueueMapperOptions = new HashRingStreamQueueMapperOptions() { TotalQueueCount = 1 };
             _streamQueueMapper = new HashRingBasedStreamQueueMapper(hashRingStreamQueueMapperOptions, _providerName);
 
         }
 
         public Task<IQueueAdapter> CreateAdapter()
         {
-            var adapter = new EventStoreQueueAdapter(_providerName, _streamProviderConfiguration, _loggerFactory);
+            var adapter = new EventStoreQueueAdapter(_providerName, _streamProviderConfiguration, _loggerFactory, _streamQueueMapper);
             return Task.FromResult<IQueueAdapter>(adapter);
         }
 

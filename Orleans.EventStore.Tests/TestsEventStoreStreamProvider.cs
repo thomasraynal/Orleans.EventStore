@@ -20,48 +20,35 @@ using Orleans.CodeGeneration;
 
 namespace Orleans.EventStore.Tests
 {
-    [Serializable]
-    public class ChangeCcyPairPriceWithVersionId : ChangeCcyPairPrice, IEventWithVersionId
-    {
-        public ChangeCcyPairPriceWithVersionId()
-        {
-        }
-
-        public ChangeCcyPairPriceWithVersionId(string ccyPair, string market, double ask, double bid) : base(ccyPair, market, ask, bid)
-        {
-        }
-
-        public long Version { get; set; }
-    }
 
     public interface IObserverGrain : IGrainWithGuidKey
     {
-        Task Publish(ChangeCcyPairPriceWithVersionId changeCcyPairPrice);
-        Task<IEnumerable<IEventWithVersionId>> GetEvents();
+        Task Publish(ChangeCcyPairPrice changeCcyPairPrice);
+        Task<IEnumerable<IEvent>> GetEvents();
     }
 
-    public class ObserverGrain : Grain, IAsyncObserver<IEventWithVersionId>, IObserverGrain
+    public class ObserverGrain : Grain, IAsyncObserver<IEvent>, IObserverGrain
     {
-        public List<IEventWithVersionId> Events = new List<IEventWithVersionId>();
+        public List<IEvent> Events = new List<IEvent>();
         private IStreamProvider _streamProvider;
-        private IAsyncStream<IEventWithVersionId> _euroDolStream;
+        private IAsyncStream<IEvent> _euroDolStream;
 
         public async override Task OnActivateAsync()
         {
-            _streamProvider = this.GetStreamProvider("EUR/USD");
+            _streamProvider = base.GetStreamProvider("EUR/USD");
 
-            _euroDolStream = _streamProvider.GetStream<IEventWithVersionId>(Guid.Empty, "EUR/USD");
+            _euroDolStream = _streamProvider.GetStream<IEvent>(Guid.Empty, "EUR/USD");
 
             var subscription = await _euroDolStream.SubscribeAsync(this);
 
         }
 
-        public Task<IEnumerable<IEventWithVersionId>> GetEvents()
+        public Task<IEnumerable<IEvent>> GetEvents()
         {
             return Task.FromResult(Events.AsEnumerable());
         }
 
-        public async Task Publish(ChangeCcyPairPriceWithVersionId changeCcyPairPrice)
+        public async Task Publish(ChangeCcyPairPrice changeCcyPairPrice)
         {
             await _euroDolStream.OnNextAsync(changeCcyPairPrice);
         }
@@ -76,7 +63,7 @@ namespace Orleans.EventStore.Tests
             return Task.CompletedTask;
         }
 
-        public Task OnNextAsync(IEventWithVersionId item, StreamSequenceToken token = null)
+        public Task OnNextAsync(IEvent item, StreamSequenceToken token = null)
         {
             Events.Add(item);
 
@@ -118,9 +105,9 @@ namespace Orleans.EventStore.Tests
                                 .AddMemoryStreams<DefaultMemoryMessageBodySerializer>("CcyPairStream")
                                 .AddMemoryGrainStorage("CcyPairStorage")
                                 .AddMemoryGrainStorage("AsyncStreamHandlerStorage")
-                                .AddMemoryGrainStorage("PubSubStore")
                                 .AddEventStorePersistentStream(euroDolStream)
                                 .AddEventStorePersistentStream(euroJpyStream)
+                                .AddMemoryGrainStorage("PubSubStore")
                                 .UseLocalhostClustering()
                                 .Configure<ClusterOptions>(options =>
                                 {
@@ -169,23 +156,51 @@ namespace Orleans.EventStore.Tests
             var silo = await CreateSilo(cancel.Token);
             var client = await GetClient();
 
-            var observer = client.GetGrain<IObserverGrain>(Guid.NewGuid());
+            var observer2 = client.GetGrain<IObserverGrain>(Guid.NewGuid());
+            var observer1 = client.GetGrain<IObserverGrain>(Guid.NewGuid());
+            var observer3 = client.GetGrain<IObserverGrain>(Guid.NewGuid());
+            var observer4 = client.GetGrain<IObserverGrain>(Guid.NewGuid());
 
-            await observer.Publish(new ChangeCcyPairPriceWithVersionId("EUR/USD", "Harmony", 1.32, 1.34));
-            await observer.Publish(new ChangeCcyPairPriceWithVersionId("EUR/USD", "Harmony", 1.33, 1.34));
-            await observer.Publish(new ChangeCcyPairPriceWithVersionId("EUR/USD", "Harmony", 1.31, 1.34));
-            await observer.Publish(new ChangeCcyPairPriceWithVersionId("EUR/USD", "Harmony", 1.35, 1.36));
+            await observer1.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.32, 1.34));
+            await observer1.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.33, 1.34));
+            await observer1.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.31, 1.34));
+            await observer1.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.35, 1.36));
 
             await Task.Delay(500);
 
-            var events = await observer.GetEvents();
+            var observer1Events = await observer1.GetEvents();
+            var observer2Events = await observer2.GetEvents();
+            var observer3Events = await observer3.GetEvents();
+            var observer4Events = await observer4.GetEvents();
+
+            Assert.AreEqual(4, observer1Events.Count());
+            Assert.AreEqual(4, observer2Events.Count());
+            Assert.AreEqual(4, observer3Events.Count());
+            Assert.AreEqual(4, observer4Events.Count());
+
+            await observer1.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.32, 1.34));
+            await observer1.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.33, 1.34));
+            await observer1.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.31, 1.34));
+            await observer1.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.35, 1.36));
+            await observer2.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.32, 1.34));
+            await observer2.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.33, 1.34));
+            await observer2.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.31, 1.34));
+            await observer2.Publish(new ChangeCcyPairPrice("EUR/USD", "Harmony", 1.35, 1.36));
+
+            await Task.Delay(500);
+
+            var events = await observer1.GetEvents();
+            observer1Events = await observer1.GetEvents();
+            observer2Events = await observer2.GetEvents();
 
             Assert.AreEqual(4, events.Count());
+            Assert.AreEqual(4, observer1Events.Count());
+            Assert.AreEqual(4, observer2Events.Count());
 
             cancel.Cancel();
             await silo.StopAsync();
             client.Dispose();
-        }
 
+        }
     }
 }

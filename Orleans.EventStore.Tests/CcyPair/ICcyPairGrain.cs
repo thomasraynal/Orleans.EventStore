@@ -10,7 +10,7 @@ namespace Orleans.EventStore.Tests
     {
         Task Activate();
         Task Desactivate();
-        Task Tick(string market, double ask, double bid);
+        Task Tick(string market, double bid, double ask);
         Task<bool> GetIsActive();
         Task<(double bid, double ask)> GetCurrentTick();
         Task<IEnumerable<IEvent>> GetAppliedEvents();

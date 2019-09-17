@@ -6,17 +6,17 @@ namespace Orleans.EventStore.Tests
 {
     public class CcyPairChanged : ICcyPair, IEvent
     {
-        public CcyPairChanged(string market, string ccyPair, bool isActive, double ask, double bid)
+        public CcyPairChanged(string market, string ccyPair, bool isActive, double bid, double ask)
         {
             IsActive = isActive;
             StreamId = ccyPair;
             Ask = ask;
             Bid = bid;
             Date = DateTime.Now;
-            Group = market;
+            Market = market;
         }
 
-        public string Group { get; }
+        public string Market { get; }
 
         public string StreamId { get;  }
 
@@ -28,5 +28,11 @@ namespace Orleans.EventStore.Tests
 
         public DateTime Date { get; }
 
+        public long Version { get; set; }
+
+        public override string ToString()
+        {
+            return $"{StreamId} bid:{Bid} ask:{Ask} - {Market}";
+        }
     }
 }

@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 
 namespace Orleans.EventStore
 {
+    //remove connection monitor...
     public class EventStoreRepository : IEventStoreRepository
     {
         private readonly IEventStoreConnection _eventStoreConnection;
@@ -54,7 +55,7 @@ namespace Orleans.EventStore
 
         }
 
-        public IObservable<IEventWithVersionId> ObservePersistentSubscription(string streamId, string group)
+        public IObservable<IEvent> ObservePersistentSubscription(string streamId, string group)
         {
             return SubscribeToPersistentSubscription(streamId, group)
                     .TakeUntil((_) => !IsConnected)
@@ -63,13 +64,13 @@ namespace Orleans.EventStore
 
         //todo: handle ack
         //todo: check arguments
-        private IObservable<IEventWithVersionId> SubscribeToPersistentSubscription(string streamId, string group)
+        private IObservable<IEvent> SubscribeToPersistentSubscription(string streamId, string group)
         {
-            return Observable.Create<IEventWithVersionId>(async (obs) =>
+            return Observable.Create<IEvent>(async (obs) =>
             {
                 var persistentSubscription = await _eventStoreConnection.ConnectToPersistentSubscriptionAsync(streamId, group, (eventStoreSubscription, resolvedEvent) =>
                 {
-                    var @event = DeserializeEvent<IEventWithVersionId>(resolvedEvent.Event);
+                    var @event = DeserializeEvent(resolvedEvent.Event);
 
                     @event.Version = resolvedEvent.Event.EventNumber;
 
@@ -102,6 +103,43 @@ namespace Orleans.EventStore
                  .Retry();
         }
 
+        public async Task<IEnumerable<IEvent>> GetStream(string streamId)
+        {
+            if (!IsConnected) throw new InvalidOperationException("not connected");
+
+            StreamEventsSlice currentSlice;
+
+            var result = new List<IEvent>();
+
+            do
+            {
+                currentSlice = await _eventStoreConnection.ReadStreamEventsForwardAsync(streamId, StreamPosition.Start, _eventStoreRepositoryConfiguration.ReadPageSize, false);
+
+                if (currentSlice.Status == SliceReadStatus.StreamNotFound || currentSlice.Status == SliceReadStatus.StreamDeleted)
+                {
+                    break;
+                }
+
+
+                foreach (var resolvedEvent in currentSlice.Events)
+                {
+                    var @event = DeserializeEvent(resolvedEvent.Event);
+
+                    result.Add(@event);
+                }
+
+            } while (!currentSlice.IsEndOfStream);
+
+
+            return result;
+        }
+
+        //todo: handle usercredentials
+        public async Task<StreamMetadataResult> GetStreamMetadata(string streamId)
+        {
+            return await _eventStoreConnection.GetStreamMetadataAsync(streamId);
+        }
+
         public async Task<(int version, TState aggregate)> GetAggregate<TKey, TState>(TKey id) where TState : class, IAggregate, new()
         {
             if (!IsConnected) throw new InvalidOperationException("not connected");
@@ -113,7 +151,7 @@ namespace Orleans.EventStore
             var aggregate = new TState();
 
             StreamEventsSlice currentSlice;
-
+           
             do
             {
                 currentSlice = await _eventStoreConnection.ReadStreamEventsForwardAsync(streamName, eventNumber, _eventStoreRepositoryConfiguration.ReadPageSize, false);
@@ -127,7 +165,7 @@ namespace Orleans.EventStore
 
                 foreach (var resolvedEvent in currentSlice.Events)
                 {
-                    var @event = DeserializeEvent<IEvent>(resolvedEvent.Event);
+                    var @event = DeserializeEvent(resolvedEvent.Event);
 
                     aggregate.Apply(@event);
 
@@ -141,8 +179,6 @@ namespace Orleans.EventStore
 
         public async Task SavePendingEvents(string streamId, long originalVersion, IEnumerable<IEvent> pendingEvents, params KeyValuePair<string, string>[] extraHeaders)
         {
-
-            if (!IsConnected) throw new InvalidOperationException("not connected");
 
             WriteResult result;
 
@@ -189,7 +225,7 @@ namespace Orleans.EventStore
 
                 var catchUpSubscription = _eventStoreConnection.SubscribeToStreamFrom(streamId, position, settings, (eventStoreSubscription, resolvedEvent) =>
                 {
-                    var @event = DeserializeEvent<IEvent>(resolvedEvent.Event);
+                    var @event = DeserializeEvent(resolvedEvent.Event);
 
                     obs.OnNext(@event);
 
@@ -213,7 +249,7 @@ namespace Orleans.EventStore
             {
                 var eventStoreSubscription = await _eventStoreConnection.SubscribeToStreamAsync(streamId, true, (subscription, resolvedEvent) =>
                 {
-                    var @event = DeserializeEvent<IEvent>(resolvedEvent.Event);
+                    var @event = DeserializeEvent(resolvedEvent.Event);
 
                     obs.OnNext(@event);
 
@@ -234,9 +270,11 @@ namespace Orleans.EventStore
 
         }
 
-        private TEvent DeserializeEvent<TEvent>(RecordedEvent evt) where TEvent : class
+        private IEvent DeserializeEvent(RecordedEvent evt)
         {
-            return _eventStoreRepositoryConfiguration.Serializer.DeserializeObject(evt.Data, TypeUtil.Resolve(evt.EventType)) as TEvent;
+            var @event = _eventStoreRepositoryConfiguration.Serializer.DeserializeObject(evt.Data, TypeUtil.Resolve(evt.EventType)) as IEvent;
+            @event.Version = evt.EventNumber;
+            return @event;
         }
 
         private IList<IList<EventData>> GetEventBatches(IEnumerable<EventData> events)
