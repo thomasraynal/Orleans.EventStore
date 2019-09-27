@@ -24,7 +24,7 @@ namespace Orleans.EventStore.Tests
 
         public override string ToString()
         {
-            return $"{StreamId} bid:{Bid} ask:{Ask} - {Market}";
+            return $"{StreamId} [{Version}] bid:{Bid} ask:{Ask} - {Market}";
         }
     }
 }

@@ -13,16 +13,13 @@ namespace Orleans.EventStore
     {
         private readonly IEventStoreRepositoryConfiguration _eventStoreRepositoryConfiguration;
         private readonly ILoggerFactory _loggerFactory;
-        private readonly IStreamQueueMapper _streamQueueMapper;
-
+        
         public EventStoreQueueAdapter(string providerName,
             IEventStoreRepositoryConfiguration eventStoreRepositoryConfiguration,
-            ILoggerFactory loggerFactory,
-            IStreamQueueMapper streamQueueMapper)
+            ILoggerFactory loggerFactory)
         {
             _eventStoreRepositoryConfiguration = eventStoreRepositoryConfiguration;
             _loggerFactory = loggerFactory;
-            _streamQueueMapper = streamQueueMapper;
 
             Name = providerName;
 
@@ -46,14 +43,11 @@ namespace Orleans.EventStore
         public async Task QueueMessageBatchAsync<T>(Guid streamGuid, string streamNamespace, IEnumerable<T> events, StreamSequenceToken token, Dictionary<string, object> requestContext)
         {
 
-            var queueForStream = _streamQueueMapper.GetQueueForStream(streamGuid, streamNamespace);
-
             if (!EventStore.IStarted)
             {
                 await EventStore.Connect(TimeSpan.FromSeconds(5));
             }
 
- 
             //we handle versioning on EventStore
             await EventStore.SavePendingEvents(Name, ExpectedVersion.Any, events.Cast<IEvent>());
 

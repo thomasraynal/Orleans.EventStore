@@ -32,7 +32,7 @@ namespace Orleans.EventStore
 
         public bool ImportRequestContext()
         {
-            return false;
+            return true;
         }
 
         public bool ShouldDeliver(IStreamIdentity stream, object filterData, StreamFilterPredicate shouldReceiveFunc)

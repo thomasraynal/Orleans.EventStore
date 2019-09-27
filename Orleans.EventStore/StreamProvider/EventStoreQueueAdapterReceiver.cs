@@ -66,12 +66,7 @@ namespace Orleans.EventStore
                 await _eventStoreRepository.Connect(timeout);
             }
 
-            //var group = _queueId.ToString();
-
-            //await _eventStoreRepository.CreatePersistentSubscription(_providerName, group);
-
             //todo: catchUp sub
-
             _cleanUp = _eventStoreRepository.Observe(_providerName)
                 .Subscribe(ev =>
                 {
