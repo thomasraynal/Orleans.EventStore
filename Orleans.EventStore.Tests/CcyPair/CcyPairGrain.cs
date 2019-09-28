@@ -16,7 +16,7 @@ namespace Orleans.EventStore.Tests
     [StorageProvider(ProviderName = "CcyPairStorage")]
     public class CcyPairGrain : EventStoreJournaledGrain<CcyPair,IEvent>, ICcyPairGrain
     {
-        public CcyPairGrain(IEventStoreRepositoryConfiguration eventStoreConfiguration) : base(eventStoreConfiguration)
+        public CcyPairGrain(EventStoreRepositoryConfiguration eventStoreConfiguration) : base(eventStoreConfiguration)
         {
         }
 

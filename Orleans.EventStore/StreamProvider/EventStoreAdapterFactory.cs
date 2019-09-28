@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Providers;
@@ -16,7 +17,7 @@ namespace Orleans.EventStore
 {
     public class EventStoreAdapterFactory : IQueueAdapterFactory
     {
-        private readonly IEventStoreRepositoryConfiguration _streamProviderConfiguration;
+        private readonly EventStoreRepositoryConfiguration _eventStoreRepositoryConfiguration;
         private readonly ILoggerFactory _loggerFactory;
         private readonly IStreamQueueMapper _streamQueueMapper;
         private readonly string _providerName;
@@ -25,17 +26,18 @@ namespace Orleans.EventStore
 
         public static EventStoreAdapterFactory Create(IServiceProvider services, string name)
         {
-            var streamProviderConfiguration = services.GetOptionsByName<EventStoreStreamProviderConfiguration>(name);
+            var eventStoreRepositoryConfiguration = services.GetOptionsByName<EventStoreRepositoryConfiguration>(name);
 
-            return ActivatorUtilities.CreateInstance<EventStoreAdapterFactory>(services, name, streamProviderConfiguration);
+            return ActivatorUtilities.CreateInstance<EventStoreAdapterFactory>(services, name, eventStoreRepositoryConfiguration);
         }
 
-        public EventStoreAdapterFactory(string providerName, IEventStoreStreamProviderConfiguration streamProviderConfiguration, ILoggerFactory loggerFactory)
+        public EventStoreAdapterFactory(string providerName, EventStoreRepositoryConfiguration eventStoreRepositoryConfiguration, ILoggerFactory loggerFactory)
         {
-            _streamProviderConfiguration = streamProviderConfiguration;
             _loggerFactory = loggerFactory;
             _providerName = providerName;
-            
+
+            _eventStoreRepositoryConfiguration = eventStoreRepositoryConfiguration;
+
             _receivers = new ConcurrentDictionary<QueueId, EventStoreQueueAdapterReceiver>();
 
             var options = new SimpleQueueCacheOptions()
@@ -43,7 +45,7 @@ namespace Orleans.EventStore
                 CacheSize = 100
             };
 
-            _eventStoreQueueAdapterCache = new SimpleQueueAdapterCache(options,_providerName, _loggerFactory);//EventStoreQueueAdapterCache(this, loggerFactory);
+            _eventStoreQueueAdapterCache = new SimpleQueueAdapterCache(options, _providerName, _loggerFactory);
 
             var hashRingStreamQueueMapperOptions = new HashRingStreamQueueMapperOptions() { TotalQueueCount = 1 };
             _streamQueueMapper = new HashRingBasedStreamQueueMapper(hashRingStreamQueueMapperOptions, _providerName);
@@ -52,7 +54,7 @@ namespace Orleans.EventStore
 
         public Task<IQueueAdapter> CreateAdapter()
         {
-            var adapter = new EventStoreQueueAdapter(_providerName, _streamProviderConfiguration, _loggerFactory, _streamQueueMapper);
+            var adapter = new EventStoreQueueAdapter(_providerName, _eventStoreRepositoryConfiguration, _loggerFactory);
             return Task.FromResult<IQueueAdapter>(adapter);
         }
 

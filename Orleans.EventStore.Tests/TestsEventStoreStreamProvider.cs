@@ -95,7 +95,6 @@ namespace Orleans.EventStore.Tests
         private const string euroJpyStream = "EUR/JPY";
         private const string harmonyMarket = "Harmony";
         private const string fxConnectMarket = "fxConnect";
-        private readonly List<string> groups = new List<string>() { harmonyMarket, fxConnectMarket };
 
         private EmbeddedEventStoreFixture _embeddedEventStore;
 
@@ -129,10 +128,6 @@ namespace Orleans.EventStore.Tests
                                 {
                                     options.ClusterId = "dev";
                                     options.ServiceId = serviceId;
-                                })
-                                .ConfigureServices(services =>
-                                {
-                                    services.AddSingleton<IEventStoreStreamProviderConfiguration>(new EventStoreStreamProviderConfiguration(groups));
                                 })
                                .ConfigureApplicationParts(parts => parts.AddFromApplicationBaseDirectory())
                                .ConfigureLogging(logging => logging.AddConsole());

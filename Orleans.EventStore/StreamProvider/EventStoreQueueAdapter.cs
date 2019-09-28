@@ -11,14 +11,11 @@ namespace Orleans.EventStore
 {
     public class EventStoreQueueAdapter : IQueueAdapter
     {
-        private readonly IEventStoreRepositoryConfiguration _eventStoreRepositoryConfiguration;
+
         private readonly ILoggerFactory _loggerFactory;
-        
-        public EventStoreQueueAdapter(string providerName,
-            IEventStoreRepositoryConfiguration eventStoreRepositoryConfiguration,
-            ILoggerFactory loggerFactory)
+
+        public EventStoreQueueAdapter(string providerName, EventStoreRepositoryConfiguration eventStoreRepositoryConfiguration, ILoggerFactory loggerFactory)
         {
-            _eventStoreRepositoryConfiguration = eventStoreRepositoryConfiguration;
             _loggerFactory = loggerFactory;
 
             Name = providerName;
@@ -28,7 +25,8 @@ namespace Orleans.EventStore
 
         public string Name { get; }
 
-        public bool IsRewindable => true;
+        //todo: handle rewind
+        public bool IsRewindable => false;
 
         public IEventStoreRepository EventStore { get; }
 
@@ -36,19 +34,18 @@ namespace Orleans.EventStore
 
         public IQueueAdapterReceiver CreateReceiver(QueueId queueId)
         {
-            //todo: create a connection per queue?
             return EventStoreQueueAdapterReceiver.Create(EventStore, _loggerFactory, queueId, Name);
         }
 
         public async Task QueueMessageBatchAsync<T>(Guid streamGuid, string streamNamespace, IEnumerable<T> events, StreamSequenceToken token, Dictionary<string, object> requestContext)
         {
 
-            if (!EventStore.IStarted)
+            if (!EventStore.IsStarted)
             {
                 await EventStore.Connect(TimeSpan.FromSeconds(5));
             }
 
-            //we handle versioning on EventStore
+            //we handle versionning on EventStore
             await EventStore.SavePendingEvents(Name, ExpectedVersion.Any, events.Cast<IEvent>());
 
         }

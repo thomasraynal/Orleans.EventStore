@@ -61,7 +61,7 @@ namespace Orleans.EventStore
 
         public async Task Initialize(TimeSpan timeout)
         {
-            if (!_eventStoreRepository.IStarted)
+            if (!_eventStoreRepository.IsStarted)
             {
                 await _eventStoreRepository.Connect(timeout);
             }

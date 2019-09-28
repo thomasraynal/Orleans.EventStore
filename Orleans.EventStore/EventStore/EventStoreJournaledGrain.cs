@@ -19,16 +19,17 @@ namespace Orleans.EventStore
         where TEvent : class, IEvent
     {
 
-        private readonly IEventStoreRepositoryConfiguration _eventStoreConfiguration;
+        private readonly EventStoreRepositoryConfiguration _eventStoreConfiguration;
         private EventStoreRepository _repository;
 
-        protected EventStoreJournaledGrain(IEventStoreRepositoryConfiguration eventStoreConfiguration)
+        protected EventStoreJournaledGrain(EventStoreRepositoryConfiguration eventStoreConfiguration)
         {
             _eventStoreConfiguration = eventStoreConfiguration;
         }
 
         public async override Task OnActivateAsync()
         {
+            //todo: we may not need a connection per grain...
             _repository = EventStoreRepository.Create(_eventStoreConfiguration);
             await _repository.Connect(TimeSpan.FromSeconds(5));
         }

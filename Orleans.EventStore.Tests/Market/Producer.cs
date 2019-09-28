@@ -7,7 +7,7 @@ using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Orleans.EventStore
+namespace Orleans.EventStore.Tests
 {
     [StorageProvider(ProviderName = "CcyPairStorage")]
     public abstract class Producer<TEvent> : Grain, ICanConnect where TEvent : IEvent

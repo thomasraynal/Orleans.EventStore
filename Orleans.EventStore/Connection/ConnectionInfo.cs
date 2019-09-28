@@ -15,9 +15,5 @@ namespace Orleans.EventStore
         public ConnectionStatus Status { get; }
         public int ConnectCount { get; }
 
-        public override string ToString()
-        {
-            return $"{Status} - Connect Counter [{ConnectCount}]";
-        }
     }
 }

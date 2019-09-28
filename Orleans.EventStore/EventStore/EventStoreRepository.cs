@@ -11,25 +11,25 @@ using System.Threading.Tasks;
 
 namespace Orleans.EventStore
 {
-    //remove connection monitor...
+    //todo: remove connection monitor...
     public class EventStoreRepository : IEventStoreRepository
     {
         private readonly IEventStoreConnection _eventStoreConnection;
-        private readonly IEventStoreRepositoryConfiguration _eventStoreRepositoryConfiguration;
+        private readonly EventStoreRepositoryConfiguration _eventStoreRepositoryConfiguration;
         private readonly IConnectionStatusMonitor _connectionMonitor;
         private bool _isStarted;
 
         public bool IsConnected => _connectionMonitor.IsConnected;
-        public bool IStarted => _isStarted;
+        public bool IsStarted => _isStarted;
 
-        public static EventStoreRepository Create(IEventStoreRepositoryConfiguration repositoryConfiguration)
+        public static EventStoreRepository Create(EventStoreRepositoryConfiguration repositoryConfiguration)
         {
             var eventStoreConnection = new ExternalEventStore(repositoryConfiguration.ConnectionString, repositoryConfiguration.ConnectionSettings).Connection;
             var repository = new EventStoreRepository(repositoryConfiguration, eventStoreConnection, new ConnectionStatusMonitor(eventStoreConnection));
             return repository;
         }
 
-        private EventStoreRepository(IEventStoreRepositoryConfiguration configuration, IEventStoreConnection eventStoreConnection, IConnectionStatusMonitor connectionMonitor)
+        private EventStoreRepository(EventStoreRepositoryConfiguration configuration, IEventStoreConnection eventStoreConnection, IConnectionStatusMonitor connectionMonitor)
         {
             _eventStoreRepositoryConfiguration = configuration;
             _eventStoreConnection = eventStoreConnection;
@@ -134,12 +134,6 @@ namespace Orleans.EventStore
             return result;
         }
 
-        //todo: handle usercredentials
-        public async Task<StreamMetadataResult> GetStreamMetadata(string streamId)
-        {
-            return await _eventStoreConnection.GetStreamMetadataAsync(streamId);
-        }
-
         public async Task<(int version, TState aggregate)> GetAggregate<TKey, TState>(TKey id) where TState : class, IAggregate, new()
         {
             if (!IsConnected) throw new InvalidOperationException("not connected");
@@ -210,7 +204,7 @@ namespace Orleans.EventStore
         {
             return Observable.Create<IEvent>(async (obs) =>
             {
-                return  await CreateEventStoreSubscription(streamId, obs, fromIncluding, rewindfAfterDisconnection);
+                return await CreateEventStoreSubscription(streamId, obs, fromIncluding, rewindfAfterDisconnection);
             });
         }
 
