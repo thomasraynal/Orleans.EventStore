@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace Orleans.EventStore
 {
-    public interface IEventStoreRepository
+    public interface IEventStoreRepository : IDisposable
     {
         bool IsConnected { get; }
         Task Connect(TimeSpan timeout);
@@ -15,6 +15,6 @@ namespace Orleans.EventStore
         Task CreatePersistentSubscription(string streamId, string group);
         Task<IEnumerable<IEvent>> GetStream(string streamId);
         IObservable<IEvent> ObservePersistentSubscription(string streamId, string group);
-        Task SavePendingEvents(string streamId, long originalVersion, IEnumerable<IEvent> pendingEvents, params KeyValuePair<string, string>[] extraHeaders);
+        Task SavePendingEvents(string streamId, long expectedVersion, IEnumerable<IEvent> pendingEvents, params KeyValuePair<string, string>[] extraHeaders);
     }
 }

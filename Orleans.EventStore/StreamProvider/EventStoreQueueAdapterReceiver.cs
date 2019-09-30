@@ -1,13 +1,10 @@
 ﻿using EventStore.ClientAPI;
-using EventStore.ClientAPI.SystemData;
 using Microsoft.Extensions.Logging;
-using Orleans.Providers.Streams.Common;
 using Orleans.Streams;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Orleans.EventStore
@@ -66,12 +63,10 @@ namespace Orleans.EventStore
                 await _eventStoreRepository.Connect(timeout);
             }
 
-            //todo: catchUp sub
             _cleanUp = _eventStoreRepository.Observe(_providerName)
                 .Subscribe(ev =>
                 {
                     Debug.WriteLine($"{ev.StreamId} {ev.Version}");
-                    //todo: implement batch
                     _receivedMessages.Enqueue(new EventStoreBatchContainer(Guid.Empty, ev.StreamId, ev, new EventStoreStreamSequenceToken(ev.Version)));
                 });
         }

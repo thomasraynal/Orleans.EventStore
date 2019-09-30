@@ -6,7 +6,6 @@ using EventStore.ClientAPI.SystemData;
 
 namespace Orleans.EventStore
 {
-    //todo: persistent subscription provider
     public class EventStoreRepositoryConfiguration : IEventStoreRepositoryConfiguration
     {
         public static readonly EventStoreRepositoryConfiguration Default = new EventStoreRepositoryConfiguration();

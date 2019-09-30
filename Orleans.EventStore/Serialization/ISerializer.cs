@@ -4,7 +4,6 @@ using System.Text;
 
 namespace Orleans.EventStore
 {
-    //todo: use Orleans serializer
     public interface ISerializer
     {
         byte[] SerializeObject(object obj);

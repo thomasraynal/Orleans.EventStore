@@ -1,16 +1,10 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
-using Orleans;
 using Orleans.Configuration;
-using Orleans.Providers;
 using Orleans.Providers.Streams.Common;
-using Orleans.Runtime;
 using Orleans.Streams;
 using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Orleans.EventStore
@@ -22,7 +16,6 @@ namespace Orleans.EventStore
         private readonly IStreamQueueMapper _streamQueueMapper;
         private readonly string _providerName;
         private readonly SimpleQueueAdapterCache _eventStoreQueueAdapterCache;
-        private readonly ConcurrentDictionary<QueueId, EventStoreQueueAdapterReceiver> _receivers;
 
         public static EventStoreAdapterFactory Create(IServiceProvider services, string name)
         {
@@ -37,8 +30,6 @@ namespace Orleans.EventStore
             _providerName = providerName;
 
             _eventStoreRepositoryConfiguration = eventStoreRepositoryConfiguration;
-
-            _receivers = new ConcurrentDictionary<QueueId, EventStoreQueueAdapterReceiver>();
 
             var options = new SimpleQueueCacheOptions()
             {

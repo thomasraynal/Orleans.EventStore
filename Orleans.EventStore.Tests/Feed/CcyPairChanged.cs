@@ -18,7 +18,7 @@ namespace Orleans.EventStore.Tests
 
         public string Market { get; }
 
-        public string StreamId { get;  }
+        public string StreamId { get; set; }
 
         public bool IsActive { get; }
 

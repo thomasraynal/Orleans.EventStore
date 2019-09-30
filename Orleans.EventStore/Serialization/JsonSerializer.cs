@@ -5,7 +5,6 @@ using System.Text;
 
 namespace Orleans.EventStore
 {
-    //todo: use Orleans serializer
     public class JsonSerializer : ISerializer
     {
         private static readonly JsonSerializerSettings SerializerSettings = new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.None };

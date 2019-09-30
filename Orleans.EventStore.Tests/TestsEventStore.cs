@@ -1,6 +1,8 @@
-﻿using NUnit.Framework;
+﻿using EventStore.ClientAPI;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
+using System.Reactive.Disposables;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -11,17 +13,20 @@ namespace Orleans.EventStore.Tests
     public class TestsEventStore
     {
         private EmbeddedEventStoreFixture _embeddedEventStore;
+        private CompositeDisposable _cleanup;
 
-        [SetUp]
+        [OneTimeSetUp]
         public async Task SetupFixture()
         {
             _embeddedEventStore = new EmbeddedEventStoreFixture();
             await _embeddedEventStore.Initialize();
+            _cleanup = new CompositeDisposable();
         }
 
-        [TearDown]
+        [OneTimeTearDown]
         public async Task TearDown()
         {
+            _cleanup.Dispose();
             await _embeddedEventStore.Dispose();
         }
 
@@ -29,7 +34,11 @@ namespace Orleans.EventStore.Tests
         public async Task ShouldCreateAndResumeConnection()
         {
 
+            var subject = Guid.NewGuid().ToString();
+
             var repository = EventStoreRepository.Create(new EventStoreRepositoryConfiguration());
+
+            _cleanup.Add(repository);
 
             await repository.Connect(TimeSpan.FromSeconds(10));
 
@@ -38,13 +47,15 @@ namespace Orleans.EventStore.Tests
 
             var counter = 0;
 
-            var subscription = repository.Observe("EUR/USD")
+            var subscription = repository.Observe(subject)
                                        .Subscribe(ev =>
                                         {
                                             counter++;
                                         });
 
-            await repository.SavePendingEvents("EUR/USD", -1, new[] { new CcyPairChanged("Harmony", "EUR/USD", true, 1.32, 1.34) });
+            _cleanup.Add(subscription);
+
+            await repository.SavePendingEvents(subject, -1, new[] { new CcyPairChanged("Harmony", subject, true, 1.32, 1.34) });
 
             await Task.Delay(200);
 
@@ -58,31 +69,32 @@ namespace Orleans.EventStore.Tests
             //wait for EventStore to setup user accounts
             await Task.Delay(500);
 
-            await repository.SavePendingEvents("EUR/USD", -1, new[] { new CcyPairChanged("Harmony", "EUR/USD", true, 1.32, 1.34) });
+            await repository.SavePendingEvents(subject, -1, new[] { new CcyPairChanged("Harmony", subject, true, 1.32, 1.34) });
 
             await Task.Delay(200);
 
             Assert.AreEqual(2, counter);
 
-            subscription.Dispose();
-            repository.Dispose();
 
         }
 
         [Test]
         public async Task ShouldSubscribeFromVersion()
         {
+            var subject = Guid.NewGuid().ToString();
             var repository = EventStoreRepository.Create(new EventStoreRepositoryConfiguration());
+
+            _cleanup.Add(repository);
 
             await repository.Connect(TimeSpan.FromSeconds(10));
 
             //wait for EventStore to setup user accounts
             await Task.Delay(500);
 
-            await repository.SavePendingEvents("EUR/USD", -1, new[] { new CcyPairChanged("Harmony", "EUR/USD", true, 1.32, 1.34) });
+            await repository.SavePendingEvents(subject, -1, new[] { new CcyPairChanged("Harmony", subject, true, 1.32, 1.34) });
             await Task.Delay(200);
 
-            await repository.SavePendingEvents("EUR/USD", 0, new[] { new CcyPairChanged("Harmony", "EUR/USD", true, 1.32, 1.34) });
+            await repository.SavePendingEvents(subject, 0, new[] { new CcyPairChanged("Harmony", subject, true, 1.32, 1.34) });
             await Task.Delay(200);
 
             repository.Dispose();
@@ -94,34 +106,35 @@ namespace Orleans.EventStore.Tests
             await Task.Delay(500);
 
             var counter = 0;
-            var subscription = repository.Observe("EUR/USD", 1)
+            var subscription = repository.Observe(subject, 1)
                            .Subscribe(ev =>
                            {
                                counter++;
                            });
 
+            _cleanup.Add(subscription);
+
             await Task.Delay(200);
 
             Assert.AreEqual(1, counter);
-
-            subscription.Dispose();
-            repository.Dispose();
         }
 
         [Test]
         public async Task ShouldCatchUpStream()
         {
+            var subject = Guid.NewGuid().ToString();
             var repository = EventStoreRepository.Create(new EventStoreRepositoryConfiguration());
+            _cleanup.Add(repository);
 
             await repository.Connect(TimeSpan.FromSeconds(10));
 
             //wait for EventStore to setup user accounts
             await Task.Delay(500);
 
-            await repository.SavePendingEvents("EUR/USD", -1, new[] { new CcyPairChanged("Harmony", "EUR/USD", true, 1.32, 1.34) });
+            await repository.SavePendingEvents(subject, -1, new[] { new CcyPairChanged("Harmony", subject, true, 1.32, 1.34) });
             await Task.Delay(200);
 
-            await repository.SavePendingEvents("EUR/USD", 0, new[] { new CcyPairChanged("Harmony", "EUR/USD", true, 1.32, 1.34) });
+            await repository.SavePendingEvents(subject, 0, new[] { new CcyPairChanged("Harmony", subject, true, 1.32, 1.34) });
             await Task.Delay(200);
 
             repository.Dispose();
@@ -133,18 +146,17 @@ namespace Orleans.EventStore.Tests
             await Task.Delay(500);
 
             var counter = 0;
-            var subscription = repository.Observe("EUR/USD",rewindAfterDisconnection : true)
+            var subscription = repository.Observe(subject, rewindAfterDisconnection: true)
                            .Subscribe(ev =>
                            {
                                counter++;
                            });
 
+            _cleanup.Add(subscription);
+
             await Task.Delay(200);
 
             Assert.AreEqual(2, counter);
-
-            subscription.Dispose();
-            repository.Dispose();
         }
 
     }

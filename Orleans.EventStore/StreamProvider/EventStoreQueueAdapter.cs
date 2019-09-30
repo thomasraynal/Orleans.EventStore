@@ -4,7 +4,6 @@ using Orleans.Streams;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Orleans.EventStore
@@ -26,6 +25,7 @@ namespace Orleans.EventStore
         public string Name { get; }
 
         //todo: handle rewind
+        //https://github.com/dotnet/orleans/tree/master/src/Azure/Orleans.Streaming.EventHubs
         public bool IsRewindable => false;
 
         public IEventStoreRepository EventStore { get; }

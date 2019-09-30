@@ -86,15 +86,13 @@ namespace Orleans.EventStore.Tests
 
         }
     }
-
+ 
     [TestFixture]
     public class TestsEventStoreStreamProvider
     {
         private const string serviceId = "OrleansCcyPairs";
         private const string euroDolStream = "EUR/USD";
         private const string euroJpyStream = "EUR/JPY";
-        private const string harmonyMarket = "Harmony";
-        private const string fxConnectMarket = "fxConnect";
 
         private EmbeddedEventStoreFixture _embeddedEventStore;
 
@@ -158,6 +156,7 @@ namespace Orleans.EventStore.Tests
             await client.Connect();
             return client;
         }
+
 
         [Test]
         public async Task ShouldWriteAndReadFromStream()

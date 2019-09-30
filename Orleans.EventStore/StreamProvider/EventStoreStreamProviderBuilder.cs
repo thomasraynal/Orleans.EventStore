@@ -3,8 +3,6 @@ using Orleans;
 using Orleans.Configuration;
 using Orleans.Hosting;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Orleans.EventStore
 {

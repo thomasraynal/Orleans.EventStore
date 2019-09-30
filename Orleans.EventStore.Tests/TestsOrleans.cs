@@ -53,7 +53,7 @@ namespace Orleans.EventStore.Tests
                                 })
                                 .ConfigureServices(services =>
                                 {
-                                    services.AddTransient<IEventStoreRepositoryConfiguration, EventStoreRepositoryConfiguration>();
+                                    services.AddSingleton(new EventStoreRepositoryConfiguration());
                                 })
                                 .ConfigureApplicationParts(parts => parts.AddApplicationPart(Assembly.GetExecutingAssembly()).WithReferences())
                                 .ConfigureLogging(logging => logging.AddConsole());

@@ -3,15 +3,17 @@ using EventStore.ClientAPI.SystemData;
 using MoreLinq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using NullGuard;
+using JetBrains.Annotations;
 
 namespace Orleans.EventStore
 {
-    //todo: remove connection monitor...
     public class EventStoreRepository : IEventStoreRepository
     {
         private readonly IEventStoreConnection _eventStoreConnection;
@@ -24,7 +26,7 @@ namespace Orleans.EventStore
 
         public static EventStoreRepository Create(EventStoreRepositoryConfiguration repositoryConfiguration)
         {
-            var eventStoreConnection = new ExternalEventStore(repositoryConfiguration.ConnectionString, repositoryConfiguration.ConnectionSettings).Connection;
+            var eventStoreConnection = EventStoreConnection.Create(repositoryConfiguration.ConnectionSettings, new Uri(repositoryConfiguration.ConnectionString));
             var repository = new EventStoreRepository(repositoryConfiguration, eventStoreConnection, new ConnectionStatusMonitor(eventStoreConnection));
             return repository;
         }
@@ -46,16 +48,16 @@ namespace Orleans.EventStore
             await Wait.Until(() => IsConnected, timeout);
         }
 
-        public async Task CreatePersistentSubscription(string streamId, string group)
+        public async Task CreatePersistentSubscription([NotNull] string streamId, [NotNull] string group)
         {
- 
+
             var persistentSubscriptionSettings = PersistentSubscriptionSettings.Create().DoNotResolveLinkTos().StartFromCurrent();
 
             await _eventStoreConnection.CreatePersistentSubscriptionAsync(streamId, group, persistentSubscriptionSettings, _eventStoreRepositoryConfiguration.UserCredentials);
 
         }
 
-        public IObservable<IEvent> ObservePersistentSubscription(string streamId, string group)
+        public IObservable<IEvent> ObservePersistentSubscription([NotNull] string streamId, [NotNull] string group)
         {
             return SubscribeToPersistentSubscription(streamId, group)
                     .TakeUntil((_) => !IsConnected)
@@ -63,8 +65,7 @@ namespace Orleans.EventStore
         }
 
         //todo: handle ack
-        //todo: check arguments
-        private IObservable<IEvent> SubscribeToPersistentSubscription(string streamId, string group)
+        private IObservable<IEvent> SubscribeToPersistentSubscription([NotNull] string streamId, [NotNull] string group)
         {
             return Observable.Create<IEvent>(async (obs) =>
             {
@@ -96,14 +97,17 @@ namespace Orleans.EventStore
             });
         }
 
-        public IObservable<IEvent> Observe(string streamId, long? fromIncluding = null, bool rewindAfterDisconnection = false)
+        public IObservable<IEvent> Observe([NotNull] string streamId, long? fromIncluding = null, bool rewindAfterDisconnection = false)
         {
+
+            if (fromIncluding < 0) throw new InvalidOperationException("stream event version should be non-negative");
+
             return CreateSubscription(streamId, fromIncluding, rewindAfterDisconnection)
                  .TakeUntil((_) => !IsConnected)
                  .Retry();
         }
 
-        public async Task<IEnumerable<IEvent>> GetStream(string streamId)
+        public async Task<IEnumerable<IEvent>> GetStream([NotNull] string streamId)
         {
             if (!IsConnected) throw new InvalidOperationException("not connected");
 
@@ -134,7 +138,7 @@ namespace Orleans.EventStore
             return result;
         }
 
-        public async Task<(int version, TState aggregate)> GetAggregate<TKey, TState>(TKey id) where TState : class, IAggregate, new()
+        public async Task<(int version, TState aggregate)> GetAggregate<TKey, TState>([NotNull] TKey id) where TState : class, IAggregate, new()
         {
             if (!IsConnected) throw new InvalidOperationException("not connected");
 
@@ -171,7 +175,7 @@ namespace Orleans.EventStore
             return ((int)eventNumber, aggregate);
         }
 
-        public async Task SavePendingEvents(string streamId, long originalVersion, IEnumerable<IEvent> pendingEvents, params KeyValuePair<string, string>[] extraHeaders)
+        public async Task SavePendingEvents([NotNull] string streamId, long expectedVersion, IEnumerable<IEvent> pendingEvents, params KeyValuePair<string, string>[] extraHeaders)
         {
 
             WriteResult result;
@@ -183,11 +187,11 @@ namespace Orleans.EventStore
 
             if (eventBatches.Count == 1)
             {
-                result = await _eventStoreConnection.AppendToStreamAsync(streamId, originalVersion, eventBatches[0]);
+                result = await _eventStoreConnection.AppendToStreamAsync(streamId, expectedVersion, eventBatches[0]);
             }
             else
             {
-                using (var transaction = await _eventStoreConnection.StartTransactionAsync(streamId, originalVersion))
+                using (var transaction = await _eventStoreConnection.StartTransactionAsync(streamId, expectedVersion))
                 {
                     foreach (var batch in eventBatches)
                     {
@@ -215,7 +219,7 @@ namespace Orleans.EventStore
                 var settings = new CatchUpSubscriptionSettings(10000, 500, false, true, streamId);
 
                 //SubscribeToStreamFrom lastChekcpoint is exclusive
-                long? position = fromIncluding == null ? null : fromIncluding - 1;
+                long? position = fromIncluding == null ? null : fromIncluding  - 1;
 
                 var catchUpSubscription = _eventStoreConnection.SubscribeToStreamFrom(streamId, position, settings, (eventStoreSubscription, resolvedEvent) =>
                 {
@@ -223,10 +227,12 @@ namespace Orleans.EventStore
 
                     obs.OnNext(@event);
 
-                }, (eventStoreCatchUpSubscription) => { }
+                }, (eventStoreCatchUpSubscription) => {}
                  , (subscription, reason, exception) =>
                  {
-                     if(null != exception) obs.OnError(exception);
+
+                     Debug.WriteLine(reason);
+                     if (null != exception) obs.OnError(exception);
                      else
                      {
                          obs.OnError(new Exception($"{reason}"));

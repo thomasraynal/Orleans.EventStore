@@ -6,6 +6,6 @@ namespace Orleans.EventStore
 {
     public interface IHasStreamId
     {
-        string StreamId { get; }
+        string StreamId { get; set; }
     }
 }

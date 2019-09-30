@@ -1,8 +1,6 @@
 ﻿using Orleans.Providers.Streams.Common;
 using Orleans.Streams;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Orleans.EventStore
 {
